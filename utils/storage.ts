@@ -1,4 +1,5 @@
 import { Project, File } from '../types';
+import { templates } from './templates';
 
 const STORAGE_KEY = 'buildora_projects';
 
@@ -59,85 +60,24 @@ export const duplicateProject = (id: string): Project | null => {
 };
 
 export const createProject = (name: string, type: 'html' | 'php'): Project => {
-  const indexContent = type === 'html' 
-    ? `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${name}</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Welcome to ${name}</h1>
-        <p>Start editing this file!</p>
-        <button id="clickMe">Click Me</button>
-    </div>
-    <script src="script.js"></script>
-</body>
-</html>`
-    : `<?php
-  // Basic PHP Local Server Simulation
-  $title = "${name}";
-  echo "<h1>Welcome to " . $title . "</h1>";
-  echo "<p>PHP Server is simulated in this environment.</p>";
-?>`;
+  // Select template based on type
+  // In a future update, we could pass a templateId directly
+  const templateId = type === 'php' ? 'php-basic' : 'modern-landing';
+  const template = templates[templateId];
 
-  const styleContent = `body {
-    font-family: system-ui, -apple-system, sans-serif;
-    padding: 2rem;
-    background-color: #f0f9ff;
-    color: #333;
-}
-.container {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    text-align: center;
-}
-button {
-    background: #2563eb;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 6px;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 1rem;
-}
-button:hover {
-    background: #1d4ed8;
-}`;
+  if (!template) {
+      throw new Error(`Template not found for type: ${type}`);
+  }
 
-  const jsContent = `document.getElementById('clickMe').addEventListener('click', () => {
-    alert('Hello from Buildora!');
-});`;
-
-  const files: File[] = [
-    {
-      id: '1',
-      name: type === 'html' ? 'index.html' : 'index.php',
-      content: indexContent,
-      language: type === 'html' ? 'html' : 'php',
-      parentId: 'root'
-    },
-    {
-      id: '2',
-      name: 'style.css',
-      content: styleContent,
-      language: 'css',
-      parentId: 'root'
-    },
-    {
-      id: '3',
-      name: 'script.js',
-      content: jsContent,
-      language: 'javascript',
-      parentId: 'root'
-    }
-  ];
+  const templateFiles = template.files(name);
+  
+  // Convert template files to Project Files with IDs
+  const files: File[] = templateFiles.map((tf, index) => ({
+      ...tf,
+      id: Date.now().toString() + index,
+      parentId: 'root',
+      isDirectory: false
+  }));
 
   return {
     id: Date.now().toString(),

@@ -285,7 +285,7 @@ Do not include any other text, explanations, or markdown code blocks. Just the r
             </div>
             <div>
                 <h2 className="font-bold text-gray-800 dark:text-white">AI Tool Generator</h2>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">Powered by OpenRouter</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">Powered by Buildora</p>
             </div>
           </div>
           {!loading && (

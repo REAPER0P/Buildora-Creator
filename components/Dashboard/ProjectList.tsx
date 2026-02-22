@@ -114,16 +114,6 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate,
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
-                        downloadProject(project);
-                    }}
-                    className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-md transition-all"
-                    title="Export JSON"
-                >
-                    <Download className="w-4 h-4" />
-                </button>
-                <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
                         onDuplicate(project.id);
                     }}
                     className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-md transition-all"

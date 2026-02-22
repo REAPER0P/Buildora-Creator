@@ -184,6 +184,46 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateMultipleFiles = (filesToUpdate: { name: string, content: string }[]) => {
+    if (activeProject) {
+      let updatedFiles = [...activeProject.files];
+      
+      filesToUpdate.forEach(update => {
+        const existingFileIndex = updatedFiles.findIndex(f => f.name === update.name);
+        if (existingFileIndex !== -1) {
+            updatedFiles[existingFileIndex] = { ...updatedFiles[existingFileIndex], content: update.content };
+        } else {
+             updatedFiles.push({
+                id: Date.now().toString() + Math.random(),
+                name: update.name,
+                content: update.content,
+                language: update.name.endsWith('.css') ? 'css' : update.name.endsWith('.js') ? 'javascript' : 'html',
+                parentId: 'root',
+                isDirectory: false
+            });
+        }
+      });
+
+      const updatedProject = { ...activeProject, files: updatedFiles, lastModified: Date.now() };
+      setActiveProject(updatedProject);
+      saveProject(updatedProject);
+      
+      // Update open files and active file if they were changed
+      setOpenFiles(prev => prev.map(f => {
+          const update = filesToUpdate.find(u => u.name === f.name);
+          return update ? { ...f, content: update.content } : f;
+      }));
+      
+      if (activeFile) {
+          const update = filesToUpdate.find(u => u.name === activeFile.name);
+          if (update) {
+              setActiveFile({ ...activeFile, content: update.content });
+          }
+      }
+      addConsoleLog('system', `AI updated ${filesToUpdate.length} files.`);
+    }
+  };
+
   const handleAddFile = (name: string, content: string = '', parentId: string = 'root', isDir: boolean = false) => {
     if (activeProject) {
       // Determine language/type
@@ -322,7 +362,10 @@ const App: React.FC = () => {
 
     try {
         if (file.name.endsWith('.zip')) {
-            const zip = await JSZip.loadAsync(file);
+            // Handle potential import issues with JSZip
+            // @ts-ignore
+            const JSZipConstructor = (JSZip as any).default || JSZip;
+            const zip = await JSZipConstructor.loadAsync(file);
             const files: File[] = [];
             let hasHtml = false;
             let hasPhp = false;
@@ -419,9 +462,11 @@ const App: React.FC = () => {
       return (
         <header className={headerClass}>
           <div className="flex items-center space-x-2">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <FolderOpen className="w-5 h-5 text-white" />
-            </div>
+            <img 
+              src="https://res.cloudinary.com/ddcsjo9lb/image/upload/1000016380_cropped_jx4icm.png" 
+              alt="Buildora Logo" 
+              className="w-10 h-10 rounded-lg object-cover"
+            />
             <h1 className={`text-xl font-bold tracking-tight ${textClass}`}>Buildora</h1>
           </div>
           <div className="flex items-center space-x-1">
@@ -544,6 +589,7 @@ const App: React.FC = () => {
                    activeFileId={activeFile.id}
                    onTabSelect={setActiveFile}
                    onTabClose={handleCloseTab}
+                   onUpdateFiles={handleUpdateMultipleFiles}
                  />
                ) : (
                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 bg-white dark:bg-[#282c34] transition-colors">

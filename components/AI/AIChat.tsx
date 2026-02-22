@@ -146,7 +146,7 @@ const AIChat: React.FC<AIChatProps> = ({ settings, onNavigateSettings }) => {
                     <Bot className="w-16 h-16 text-gray-300 dark:text-gray-600" />
                     <div className="text-sm text-gray-500">
                         <p>Ask me anything about your code!</p>
-                        <p className="text-xs mt-2">Powered by OpenRouter</p>
+                        <p className="text-xs mt-2">Powered by Buildora</p>
                     </div>
                 </div>
             )}

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { File, AppSettings } from '../../types';
-import { X, Loader2, AlignLeft, Sparkles, Undo, Redo } from 'lucide-react';
+import { X, Loader2, AlignLeft, Sparkles, Undo, Redo, Copy, Check, Maximize } from 'lucide-react';
 import clsx from 'clsx';
 
 interface CodeEditorProps {
@@ -13,6 +13,7 @@ interface CodeEditorProps {
   activeFileId?: string;
   onTabSelect?: (file: File) => void;
   onTabClose?: (id: string) => void;
+  onUpdateFiles?: (files: { name: string, content: string }[]) => void;
 }
 
 const CodeEditor: React.FC<CodeEditorProps> = ({ 
@@ -23,9 +24,12 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     openFiles = [], 
     activeFileId,
     onTabSelect,
-    onTabClose 
+    onTabClose,
+    onUpdateFiles
 }) => {
   const editorRef = useRef<any>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const streamingRef = useRef<HTMLDivElement>(null);
   
   // AI Edit State
   const [showAiModal, setShowAiModal] = useState(false);
@@ -33,6 +37,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [streamingCode, setStreamingCode] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -54,6 +59,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       return () => window.removeEventListener('resize', resizeListener);
   }, []);
 
+  // Auto-scroll streaming code
+  useEffect(() => {
+    if (streamingRef.current) {
+        streamingRef.current.scrollTop = streamingRef.current.scrollHeight;
+    }
+  }, [streamingCode]);
+
   const handleFormat = () => {
       if (editorRef.current) {
           editorRef.current.getAction('editor.action.formatDocument')?.run();
@@ -72,6 +84,32 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       }
   };
 
+  const handleCopy = async () => {
+      if (editorRef.current) {
+          const value = editorRef.current.getValue();
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+      }
+  };
+
+  const handleSelectAll = () => {
+      if (editorRef.current) {
+          const range = editorRef.current.getModel().getFullModelRange();
+          editorRef.current.setSelection(range);
+          editorRef.current.focus();
+      }
+  };
+
+  const handleCancelAi = () => {
+      if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          abortControllerRef.current = null;
+      }
+      setAiLoading(false);
+      setShowAiModal(false);
+  };
+
   const handleAiSubmit = async () => {
     if (!aiPrompt.trim()) return;
     if (!settings.openRouterApiKey) {
@@ -79,42 +117,55 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         return;
     }
     
+    // Cancel previous request if any
+    if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     setAiLoading(true);
     setAiError(null);
     setStreamingCode('');
 
     const systemPrompt = `You are an elite UI/UX designer and frontend developer specializing in 2025 web design trends.
 
-STRICT DESIGN REQUIREMENTS (MANDATORY) when modifying UI/CSS/HTML:
-- Use glassmorphism (frosted glass effects with backdrop-filter)
-- OR neumorphism (soft extruded shapes with dual shadows)
-- OR modern gradients with vibrant colors
-- Include smooth animations and micro-interactions (hover effects, transitions)
-- Use modern fonts (Inter, Poppins, Clash Display) via Google Fonts
+STRICT DESIGN REQUIREMENTS (MANDATORY):
+- Use glassmorphism (frosted glass effects), neumorphism, or modern gradients
+- Use modern fonts (Inter, Poppins, Clash Display)
 - Implement asymmetric layouts with creative whitespace
-- Add subtle shadows with proper layering
 - Mobile-first responsive design
 - Use Tailwind CSS with modern utility classes
-- Include dark mode support where appropriate
 - Make it look like Dribbble/Behance/Awwwards winning designs
 
-FORBIDDEN ELEMENTS:
-- Flat, boring designs with no depth
-- Simple borders without any effect
-- Outdated color schemes (pure grays, basic blues)
-- No animations or transitions
-- Table-based layouts
-- Fonts like Arial, Times New Roman (use modern fonts instead)
-- Heavy shadows without subtlety
+You MUST return files in this structured format:
 
-TONE: Professional, creative, pixel-perfect. Every design should feel premium and expensive.
+=== index.html ===
+<full html code here>
 
-Task: Modify the provided code based strictly on the user's request.
-Rules:
-1. Return ONLY the valid code. No markdown formatting (no \`\`\`), no explanations.
-2. Preserve indentation and style where possible.
-3. If the request is to fix bugs, fix them.
-4. If the request is to add a feature, add it with premium design principles.`;
+HTML file must NOT contain:
+  - <style> blocks
+  - <script> inline code
+- HTML must link properly:
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js"></script>
+
+=== style.css ===
+<full css code here>
+
+All styling must go inside style.css
+
+=== script.js ===
+<full js code here>
+
+All JavaScript must go inside script.js
+
+Do NOT return explanations.
+Do NOT return combined code.
+Do NOT return markdown.
+Do NOT wrap inside \`\`\` blocks.
+Return only raw file-separated output.`;
 
     try {
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -142,7 +193,8 @@ Rules:
                 frequency_penalty: 0.3,
                 presence_penalty: 0.3,
                 stream: true
-            })
+            }),
+            signal: controller.signal
         });
         
         if (!response.ok) {
@@ -190,10 +242,30 @@ Rules:
 
         if (!fullContent) throw new Error("No code returned from AI");
         
-        // Strip markdown if AI ignores rule
-        let newCode = fullContent.replace(/^```[a-z]*\n/i, '').replace(/\n```$/, '').trim();
+        // Parse multi-file format
+        const extractContent = (marker: string) => {
+            const regex = new RegExp(`=== ${marker} ===\\s*([\\s\\S]*?)(?=\\n===|$)`, 'i');
+            const match = fullContent.match(regex);
+            return match ? match[1].trim() : null;
+        };
+
+        const html = extractContent('index.html');
+        const css = extractContent('style.css');
+        const js = extractContent('script.js');
+
+        if ((html || css || js) && onUpdateFiles) {
+            const updates = [];
+            if (html) updates.push({ name: 'index.html', content: html });
+            if (css) updates.push({ name: 'style.css', content: css });
+            if (js) updates.push({ name: 'script.js', content: js });
+            
+            onUpdateFiles(updates);
+        } else {
+            // Fallback for single file or if format missing
+            let newCode = fullContent.replace(/^```[a-z]*\n/i, '').replace(/\n```$/, '').trim();
+            onChange(newCode);
+        }
         
-        onChange(newCode);
         setShowAiModal(false);
         setAiPrompt('');
         setStreamingCode('');
@@ -204,9 +276,16 @@ Rules:
         }, 200);
 
     } catch (err: any) {
-        setAiError(err.message || "Failed to generate changes");
+        if (err.name === 'AbortError') {
+            console.log("AI generation cancelled");
+        } else {
+            setAiError(err.message || "Failed to generate changes");
+        }
     } finally {
-        setAiLoading(false);
+        if (abortControllerRef.current === controller) {
+            setAiLoading(false);
+            abortControllerRef.current = null;
+        }
     }
   };
 
@@ -272,6 +351,20 @@ Rules:
                  <Redo className="w-4 h-4" />
                </button>
                <div className="w-px h-4 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+               <button 
+                onClick={handleCopy}
+                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"
+                title="Copy All Code"
+               >
+                 {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+               </button>
+               <button 
+                onClick={handleSelectAll}
+                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"
+                title="Select All Code"
+               >
+                 <Maximize className="w-4 h-4" />
+               </button>
                <button 
                 onClick={() => setShowAiModal(true)}
                 className="p-1.5 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded text-purple-600 dark:text-purple-400"
@@ -340,11 +433,9 @@ Rules:
                                 </div>
                                 <span className="font-semibold text-xs text-gray-700 dark:text-gray-200">AI Modify Code (Modern UI)</span>
                             </div>
-                            {!aiLoading && (
-                                <button onClick={() => setShowAiModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            )}
+                            <button onClick={handleCancelAi} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
                         
                         {/* Body */}
@@ -375,7 +466,10 @@ Rules:
                             />
 
                             {aiLoading && (
-                                <div className="w-full h-64 bg-[#1e1e1e] text-green-400 font-mono text-xs p-3 overflow-auto rounded-lg border border-gray-700 shadow-inner">
+                                <div 
+                                    ref={streamingRef}
+                                    className="w-full h-64 bg-[#1e1e1e] text-green-400 font-mono text-xs p-3 overflow-auto rounded-lg border border-gray-700 shadow-inner"
+                                >
                                     <div className="flex items-center space-x-2 mb-2 border-b border-gray-700 pb-2">
                                         <Loader2 className="w-3 h-3 animate-spin" />
                                         <span className="font-bold">AI Generating Code...</span>

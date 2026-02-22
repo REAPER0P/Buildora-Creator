@@ -12,12 +12,22 @@ const LivePreview: React.FC<LivePreviewProps> = ({ project, onConsoleLog }) => {
   const [device, setDevice] = useState<'mobile' | 'desktop'>('mobile');
   const [isRunning, setIsRunning] = useState(true);
   const [key, setKey] = useState(0);
+  const [isNativeMobile, setIsNativeMobile] = useState(false);
 
-  // Auto-detect mobile device to switch to "desktop" (full width) mode
+  // Auto-detect mobile device
   useEffect(() => {
-    if (window.innerWidth < 768) {
-      setDevice('desktop');
-    }
+    const checkMobile = () => {
+        if (window.innerWidth < 768) {
+            setIsNativeMobile(true);
+            setDevice('desktop'); // Default to full width on mobile
+        } else {
+            setIsNativeMobile(false);
+        }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const previewContent = useMemo(() => {
@@ -116,7 +126,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ project, onConsoleLog }) => {
   return (
     <div className="flex flex-col h-full bg-gray-100 dark:bg-gray-900 transition-colors">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex justify-between items-center shadow-sm z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex justify-between items-center shadow-sm z-10 shrink-0">
          <div className="flex items-center space-x-2">
            <button 
               onClick={() => setKey(k => k + 1)} 
@@ -125,20 +135,24 @@ const LivePreview: React.FC<LivePreviewProps> = ({ project, onConsoleLog }) => {
             >
               <RefreshCw className="w-4 h-4" />
            </button>
-           <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button 
-                onClick={() => setDevice('mobile')}
-                className={clsx("p-1.5 rounded-md transition-all", device === 'mobile' ? "bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700")}
-              >
-                <Smartphone className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setDevice('desktop')}
-                className={clsx("p-1.5 rounded-md transition-all", device === 'desktop' ? "bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700")}
-              >
-                <Monitor className="w-4 h-4" />
-              </button>
-           </div>
+           
+           {/* Device Toggles - Hidden on native mobile to save space/confusion */}
+           {!isNativeMobile && (
+               <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button 
+                    onClick={() => setDevice('mobile')}
+                    className={clsx("p-1.5 rounded-md transition-all", device === 'mobile' ? "bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700")}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => setDevice('desktop')}
+                    className={clsx("p-1.5 rounded-md transition-all", device === 'desktop' ? "bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300" : "text-gray-500 dark:text-gray-400 hover:text-gray-700")}
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </button>
+               </div>
+           )}
          </div>
          
          <div className="hidden sm:flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
@@ -156,14 +170,22 @@ const LivePreview: React.FC<LivePreviewProps> = ({ project, onConsoleLog }) => {
       </div>
 
       {/* Preview Area */}
-      <div className="flex-1 overflow-auto flex justify-center items-start p-4 sm:p-8">
+      <div className={clsx(
+          "flex-1 flex justify-center items-start",
+          isNativeMobile ? "p-0 overflow-hidden" : "p-4 sm:p-8 overflow-auto"
+      )}>
          <div 
            className={clsx(
-             "bg-white shadow-2xl transition-all duration-300 border-8 border-gray-800 dark:border-gray-700 relative overflow-hidden",
-             device === 'mobile' ? "w-[375px] h-[667px] rounded-[3rem]" : "w-full h-full max-w-5xl rounded-lg border-4"
+             "bg-white transition-all duration-300 relative overflow-hidden",
+             isNativeMobile 
+                ? "w-full h-full border-0 rounded-none shadow-none" 
+                : clsx(
+                    "shadow-2xl border-8 border-gray-800 dark:border-gray-700",
+                    device === 'mobile' ? "w-[375px] h-[667px] rounded-[3rem]" : "w-full h-full max-w-5xl rounded-lg border-4"
+                )
            )}
          >
-            {device === 'mobile' && (
+            {!isNativeMobile && device === 'mobile' && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-gray-800 dark:bg-gray-700 rounded-b-xl z-20"></div>
             )}
             <iframe 
@@ -172,6 +194,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({ project, onConsoleLog }) => {
                 srcDoc={previewContent}
                 className="w-full h-full bg-white"
                 sandbox="allow-scripts allow-modals allow-same-origin"
+                style={{ border: 'none', overflow: 'auto' }}
             />
          </div>
       </div>
