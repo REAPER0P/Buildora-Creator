@@ -153,7 +153,7 @@ const ApkBuilder: React.FC<ApkBuilderProps> = ({ project }) => {
           fileName = `${safeProjectName}.zip`;
       }
       
-      // Upload to file.io with fallback to transfer.sh
+      // Upload to file.io with fallback to tmpfiles.org and transfer.sh
       let downloadUrl: string | null = null;
       
       // Attempt 1: file.io
@@ -179,7 +179,31 @@ const ApkBuilder: React.FC<ApkBuilderProps> = ({ project }) => {
           console.warn("file.io upload failed, trying fallback...", e);
       }
 
-      // Attempt 2: transfer.sh (if attempt 1 failed)
+      // Attempt 2: tmpfiles.org (if attempt 1 failed)
+      if (!downloadUrl) {
+          try {
+              setSuccessMsg("Uploading to tmpfiles.org...");
+              const formData = new FormData();
+              formData.append('file', blob, fileName);
+
+              const response = await fetch('https://tmpfiles.org/api/v1/upload', {
+                  method: 'POST',
+                  body: formData
+              });
+
+              if (response.ok) {
+                  const data = await response.json();
+                  if (data && data.data && data.data.url) {
+                      // Convert to download URL by adding /dl/
+                      downloadUrl = data.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+                  }
+              }
+          } catch (e) {
+              console.warn("tmpfiles.org upload failed, trying fallback...", e);
+          }
+      }
+
+      // Attempt 3: transfer.sh (if attempt 1 & 2 failed)
       if (!downloadUrl) {
           try {
               setSuccessMsg("Uploading to transfer.sh...");
