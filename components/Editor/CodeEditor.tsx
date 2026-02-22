@@ -114,6 +114,8 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
               setTimeout(() => setPasted(false), 2000);
           } catch (err) {
               console.error('Failed to paste:', err);
+              // Fallback or user notification
+              alert("Browser blocked paste. Please use Ctrl+V (Cmd+V) instead.");
           }
       }
   };
