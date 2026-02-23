@@ -174,11 +174,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
                 <div className="mt-1 text-xs text-gray-500">
                   <p>Enter any OpenRouter model ID. Best Models:</p>
                   <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
+                    <li>stepfun/step-3.5-flash:free</li>
                     <li>arcee-ai/trinity-large-preview:free</li>
                     <li>z-ai/glm-4.5-air:free</li>
                     <li>qwen/qwen3-coder:free</li>
+                    <li>openai/gpt-oss-120b</li>
+                    <li>nvidia/nemotron-3-nano-30b-a3b:free</li>
                     <li>qwen/qwen3-next-80b-a3b-instruct</li>
-                    <li>stepfun/step-3.5-flash:free</li>
                     <li>mistralai/mistral-7b-instruct</li>
                     <li>openrouter/free:free</li>
                   </ol>
@@ -236,7 +238,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
         </section>
 
         <div className="text-center text-xs text-gray-400 pt-4 pb-20">
-          Buildora v1.1.0 &bull; Mobile First Web IDE
+          Buildora v1.1.0 &bull; Mobile First Web
         </div>
 
       </div>
