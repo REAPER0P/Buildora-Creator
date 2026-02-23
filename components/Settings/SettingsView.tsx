@@ -171,7 +171,19 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
                     placeholder="google/gemini-2.0-flash-lite-preview-02-05:free"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none dark:bg-gray-700 dark:text-white"
                 />
-                <p className="mt-1 text-xs text-gray-500">Enter any OpenRouter model ID (Best Models : arcee-ai/trinity-large-preview:free, z-ai/glm-4.5-air:free, qwen/qwen3-coder:free, qwen/qwen3-next-80b-a3b-instruct, stepfun/step-3.5-flash:free, mistralai/mistral-7b-instruct, openrouter/free:free).</p>
+                <div className="mt-1 text-xs text-gray-500">
+                  <p>Enter any OpenRouter model ID. Best Models:</p>
+                  <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
+                    <li>arcee-ai/trinity-large-preview:free</li>
+                    <li>z-ai/glm-4.5-air:free</li>
+                    <li>qwen/qwen3-coder:free</li>
+                    <li>qwen/qwen3-next-80b-a3b-instruct</li>
+                    <li>stepfun/step-3.5-flash:free</li>
+                    <li>mistralai/mistral-7b-instruct</li>
+                    <li>openrouter/free:free</li>
+                  </ol>
+                </div>
+
              </div>
           </div>
         </section>
