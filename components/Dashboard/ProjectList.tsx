@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppSettings, Project } from '../../types';
-import { Plus, Folder, Clock, Trash, Copy, Code, FileCode, AlertCircle, Download, Sparkles, Package } from 'lucide-react';
+import { Plus, Folder, Clock, Trash, Copy, Code, FileCode, AlertCircle, Download, Sparkles, Package, Edit } from 'lucide-react';
 import AIGeneratorModal from './AIGeneratorModal';
 import clsx from 'clsx';
 
@@ -12,14 +12,17 @@ interface ProjectListProps {
   onBuild?: (project: Project) => void;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
+  onRename?: (id: string, newName: string) => void;
   onAIProjectCreated?: (project: Project) => void;
 }
 
-const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate, onOpen, onBuild, onDelete, onDuplicate, onAIProjectCreated }) => {
+const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate, onOpen, onBuild, onDelete, onDuplicate, onRename, onAIProjectCreated }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [projectToRename, setProjectToRename] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +31,15 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate,
       setShowCreateModal(false);
       setNewProjectName('');
     }
+  };
+
+  const handleRenameSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (projectToRename && renameValue.trim() && onRename) {
+          onRename(projectToRename, renameValue.trim());
+          setProjectToRename(null);
+          setRenameValue('');
+      }
   };
 
   const confirmDelete = () => {
@@ -114,6 +126,17 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate,
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
+                        setProjectToRename(project.id);
+                        setRenameValue(project.name);
+                    }}
+                    className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-md transition-all"
+                    title="Rename"
+                >
+                    <Edit className="w-4 h-4" />
+                </button>
+                <button 
+                    onClick={(e) => {
+                        e.stopPropagation();
                         onDuplicate(project.id);
                     }}
                     className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-md transition-all"
@@ -186,6 +209,45 @@ const ProjectList: React.FC<ProjectListProps> = ({ projects, settings, onCreate,
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-blue-200 dark:shadow-none transition-colors disabled:opacity-50"
                 >
                   Create
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Project Modal */}
+      {projectToRename && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setProjectToRename(null)}></div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-sm p-6 relative z-10 animate-in fade-in zoom-in duration-200 transition-colors">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Rename Project</h2>
+            <form onSubmit={handleRenameSubmit}>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Name</label>
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-700 dark:text-white"
+                  placeholder="Project Name"
+                />
+              </div>
+              <div className="flex space-x-3">
+                <button 
+                  type="button" 
+                  onClick={() => setProjectToRename(null)}
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={!renameValue.trim()}
+                  className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-md shadow-blue-200 dark:shadow-none transition-colors disabled:opacity-50"
+                >
+                  Rename
                 </button>
               </div>
             </form>

@@ -168,12 +168,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
                     type="text"
                     value={settings.openRouterModel || ''}
                     onChange={(e) => onUpdate({...settings, openRouterModel: e.target.value})}
-                    placeholder="google/gemini-2.0-flash-lite-preview-02-05:free"
+                    placeholder="arcee-ai/trinity-large-preview:free"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none dark:bg-gray-700 dark:text-white"
                 />
-                <div className="mt-1 text-xs text-gray-500">
-                  <p>Enter any OpenRouter model ID. Best Models:</p>
-                  <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-1">Enter any OpenRouter model ID. Best Models:</p>
+                  <ol className="list-decimal pl-5 text-xs text-gray-500 space-y-1">
                     <li>stepfun/step-3.5-flash:free</li>
                     <li>arcee-ai/trinity-large-preview:free</li>
                     <li>z-ai/glm-4.5-air:free</li>
@@ -185,7 +185,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
                     <li>openrouter/free:free</li>
                   </ol>
                 </div>
-
              </div>
           </div>
         </section>
@@ -238,7 +237,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ settings, onUpdate, onClear
         </section>
 
         <div className="text-center text-xs text-gray-400 pt-4 pb-20">
-          Buildora v1.1.0 &bull; Mobile First Web
+          Buildora v1.1.0 &bull; Mobile First Web IDE
         </div>
 
       </div>

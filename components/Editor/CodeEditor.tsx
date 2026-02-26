@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import { File, AppSettings } from '../../types';
-import { X, Loader2, AlignLeft, Sparkles, Undo, Redo, Copy, Check, Maximize, ClipboardPaste } from 'lucide-react';
+import { X, Loader2, AlignLeft, Sparkles, Undo, Redo, Copy, Check, Maximize, ClipboardPaste, Scissors, MessageSquare } from 'lucide-react';
 import clsx from 'clsx';
 
 interface CodeEditorProps {
@@ -40,6 +40,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   const [streamingCode, setStreamingCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [pasted, setPasted] = useState(false);
+  
+  // Selection Toolbar State
+  const [toolbarPosition, setToolbarPosition] = useState<{top: number, left: number} | null>(null);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -49,6 +52,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     setTimeout(() => {
         editor.getAction('editor.action.formatDocument')?.run();
     }, 500);
+
+    // Listen for selection changes
+    editor.onDidChangeCursorSelection((e) => {
+        const selection = editor.getSelection();
+        if (selection && !selection.isEmpty()) {
+            const position = editor.getScrolledVisiblePosition(selection.getEndPosition());
+            if (position) {
+                // Position above the selection
+                setToolbarPosition({ top: position.top - 50, left: position.left });
+            }
+        } else {
+            setToolbarPosition(null);
+        }
+    });
+
+    // Hide toolbar on scroll
+    editor.onDidScrollChange(() => {
+        setToolbarPosition(null);
+    });
   };
 
   // Update layout when sidebar or window changes
@@ -417,7 +439,7 @@ Return only raw file-separated output.`;
       </div>
 
       {/* Main Editor Area */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden editor-container">
             <Editor
                 height="100%"
                 width="100%"
@@ -454,6 +476,66 @@ Return only raw file-separated output.`;
                     quickSuggestions: true,
                 }}
             />
+            
+            {/* Floating Selection Toolbar */}
+            {toolbarPosition && (
+                <div 
+                    className="absolute z-50 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 flex items-center p-1 space-x-1 animate-in fade-in zoom-in duration-150"
+                    style={{ 
+                        top: Math.max(10, toolbarPosition.top), // Ensure it doesn't go off-screen top
+                        left: Math.max(10, Math.min(toolbarPosition.left, window.innerWidth - 200)) // Keep within bounds
+                    }}
+                >
+                    <button 
+                        onClick={() => {
+                            editorRef.current?.trigger('source', 'editor.action.clipboardCopyAction');
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                            setToolbarPosition(null);
+                        }}
+                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"
+                        title="Copy"
+                    >
+                        {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    </button>
+                    <button 
+                        onClick={() => {
+                            editorRef.current?.trigger('source', 'editor.action.clipboardCutAction');
+                            setToolbarPosition(null);
+                        }}
+                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"
+                        title="Cut"
+                    >
+                        <Scissors className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => {
+                            editorRef.current?.trigger('source', 'editor.action.commentLine');
+                            setToolbarPosition(null);
+                        }}
+                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-600 dark:text-gray-300"
+                        title="Toggle Comment"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+                    <button 
+                        onClick={() => {
+                            const selection = editorRef.current?.getSelection();
+                            const text = editorRef.current?.getModel()?.getValueInRange(selection);
+                            if (text) {
+                                setAiPrompt(`Refactor this code:\n\n${text}`);
+                                setShowAiModal(true);
+                            }
+                            setToolbarPosition(null);
+                        }}
+                        className="flex items-center space-x-1 px-2 py-1 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded text-purple-600 dark:text-purple-300 text-xs font-medium"
+                    >
+                        <Sparkles className="w-3 h-3" />
+                        <span>AI Edit</span>
+                    </button>
+                </div>
+            )}
             
             {/* AI Edit Modal Overlay */}
             {showAiModal && (

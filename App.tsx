@@ -140,6 +140,19 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRenameProject = (id: string, newName: string) => {
+    const project = projects.find(p => p.id === id);
+    if (project) {
+        const updatedProject = { ...project, name: newName, lastModified: Date.now() };
+        saveProject(updatedProject);
+        setProjects(prev => prev.map(p => p.id === id ? updatedProject : p));
+        if (activeProject?.id === id) {
+            setActiveProject(updatedProject);
+        }
+        addConsoleLog('system', `Project renamed to: ${newName}`);
+    }
+  };
+
   const handleOpenProject = (project: Project) => {
     setActiveProject(project);
     // Restore previously open files or just open index
@@ -573,6 +586,7 @@ const App: React.FC = () => {
               onBuild={handleBuildProject}
               onDelete={handleDeleteProject}
               onDuplicate={handleDuplicateProject}
+              onRename={handleRenameProject}
               onAIProjectCreated={handleAIProjectCreated}
             />
           )}
