@@ -119,26 +119,37 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   const handlePaste = async () => {
-      if (editorRef.current && monacoRef.current) {
-          try {
-              const text = await navigator.clipboard.readText();
-              const selection = editorRef.current.getSelection();
-              const range = new monacoRef.current.Range(
-                  selection.startLineNumber,
-                  selection.startColumn,
-                  selection.endLineNumber,
-                  selection.endColumn
-              );
-              const id = { major: 1, minor: 1 };
-              const op = { identifier: id, range: range, text: text, forceMoveMarkers: true };
-              editorRef.current.executeEdits("my-source", [op]);
-              setPasted(true);
-              setTimeout(() => setPasted(false), 2000);
-          } catch (err) {
-              console.error('Failed to paste:', err);
-              // Fallback or user notification
-              alert("Browser blocked paste. Please use Ctrl+V (Cmd+V) instead.");
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      try {
+          // Check if clipboard API is supported
+          if (!navigator.clipboard || !navigator.clipboard.readText) {
+              throw new Error("Clipboard API not supported");
           }
+
+          const text = await navigator.clipboard.readText();
+          
+          const selection = editor.getSelection();
+          if (!selection) return;
+
+          // Execute edit directly using the selection object (which implements IRange)
+          editor.executeEdits("clipboard", [{
+              range: selection,
+              text: text,
+              forceMoveMarkers: true
+          }]);
+          
+          // Ensure this action is undoable separately
+          editor.pushUndoStop();
+          editor.focus();
+
+          setPasted(true);
+          setTimeout(() => setPasted(false), 2000);
+      } catch (err) {
+          console.error('Failed to paste:', err);
+          // Fallback or user notification
+          alert("Browser blocked paste. Please use Ctrl+V (Cmd+V) instead.");
       }
   };
 
