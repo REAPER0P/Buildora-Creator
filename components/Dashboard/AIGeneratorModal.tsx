@@ -116,7 +116,7 @@ Do not include any other text, explanations, or markdown code blocks. Just the r
           model: settings.openRouterModel || "google/gemini-2.0-flash-lite-preview-02-05:free",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Create a web tool with a modern 2025 design: ${prompt}` }
+            { role: "user", content: `Create a web tool with a modern 2026 design: ${prompt}` }
           ],
           temperature: 0.85,
           top_p: 0.95,
