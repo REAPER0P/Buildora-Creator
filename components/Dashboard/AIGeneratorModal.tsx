@@ -46,7 +46,7 @@ const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ settings, onClose, 
       // 1. Prepare Prompt
       addLog("Analyzing user prompt & enforcing modern design rules...");
       
-      const systemPrompt = `You are an elite UI/UX designer and frontend developer specializing in 2025 web design trends.
+      const systemPrompt = `You are an elite UI/UX designer and frontend developer specializing in 2026 web design trends.
 
 STRICT DESIGN REQUIREMENTS (MANDATORY):
 - Use glassmorphism (frosted glass effects with backdrop-filter)
