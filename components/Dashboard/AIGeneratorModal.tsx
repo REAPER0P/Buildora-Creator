@@ -39,7 +39,7 @@ const AIGeneratorModal: React.FC<AIGeneratorModalProps> = ({ settings, onClose, 
     setError(null);
     setLogs([]); // Clear previous logs
     
-    addLog("Initializing AI Designer v2025...");
+    addLog("Initializing AI Designer v2026...");
     addLog("Loading aesthetic parameters...");
 
     try {
